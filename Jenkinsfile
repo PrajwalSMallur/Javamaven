@@ -1,33 +1,25 @@
 pipeline {
-    agent any
+  agent any
 
-    tools {
-        maven 'M3'
+  stages {
+    stage('Checkout') {
+      steps {
+        git 'https://github.com/chandakesujay-bit/Java-Automation.git'
+      }
     }
 
-    environment {
-        GIT_SSH_CREDENTIALS_ID = 'github-ssh-key' // use your actual ID
+    stage('Build WAR') {
+      steps {
+        sh 'mvn clean package'
+      }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git credentialsId: "${env.GIT_SSH_CREDENTIALS_ID}",
-                    url: 'git@github.com:your-org/your-private-repo.git',
-                    branch: 'main'
-            }
+    stage('Deploy to Tomcat') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'tomcat-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+          sh 'curl -u $USER:$PASS --upload-file target/*.war "http://15.206.166.72:8081/manager/text/deploy?path=/JavaAutomation&update=true"'
         }
-
-        stage('Build with Maven') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('Archive WAR') {
-            steps {
-                archiveArtifacts artifacts: '**/target/*.war', fingerprint: true
-            }
-        }
+      }
     }
+  }
 }
